@@ -23,16 +23,16 @@ _global_variables() {
 
 _requirements() {
   local \
-    _droidvnc
+    _app
     _check_cmd \
       'app-installed' \
       'android-utils'
-    _droidvnc="$( \
+    _app="$( \
       app-installed \
-        'net.christianbeier.droidvnc_ng')"
-    if [[ "${_droidvnc}" != "true" ]]; then
+        'com.coboltforge.dontmind.multivnc')"
+    if [[ "${_app}" != "true" ]]; then
       _msg_error \
-        'DroidVNC not installed.'
+        'MultiVNC not installed.'
     fi
     _check_cmd \
       "sqlite3" \
@@ -42,12 +42,12 @@ _requirements() {
       "tsu"
 }
 
-_droidvnc_helper() {
+_multivnc_helper() {
   local \
     _command="${1}" \
     _args=() \
     _app
-  _app="net.christianbeier.droidvnc_ng"
+  _app="com.coboltforge.dontmind.multivnc"
   if [[ "${_command}" == "get" ]]; then
     _args=(
       "$( \
@@ -71,7 +71,7 @@ _droidvnc_helper() {
     "${_args[@]}"
 }
 
-_set_host_address() {
+_set_key_value() {
   local \
     _key="${1}" \
     _value="${2}"
@@ -83,6 +83,10 @@ _set_host_address() {
   #   "${_device}" \
   #   "${_address}" \
   #   "false"
+}
+
+_flush_table() {
+
 }
 
 _get_attribute() {
@@ -289,7 +293,7 @@ app_opts=(
       "target" \
       "command")"
 )
-_droidvnc_helper \
+_multivnc_helper \
   "${app_opts[@]}"
 
 # vim:set sw=2 sts=-1 et:
