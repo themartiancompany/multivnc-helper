@@ -1,0 +1,295 @@
+#!/usr/bin/env bash
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+_bin="$( \
+  dirname \
+    "$( \
+      command \
+        -v \
+	  "env")")"
+_lib="${_bin}/../lib"
+source \
+  "${_lib}/libcrash-bash/crash-bash"
+
+# shellcheck disable=SC2034
+_global_variables() {
+  target_command=""
+  target_key=""
+  target_value=""
+  color=""
+  quiet=""
+}
+
+_requirements() {
+  local \
+    _droidvnc
+    _check_cmd \
+      'app-installed' \
+      'android-utils'
+    _droidvnc="$( \
+      app-installed \
+        'net.christianbeier.droidvnc_ng')"
+    if [[ "${_droidvnc}" != "true" ]]; then
+      _msg_error \
+        'DroidVNC not installed.'
+    fi
+    _check_cmd \
+      "sqlite3" \
+      "sqlite"
+    _check_cmd \
+      "su" \
+      "tsu"
+}
+
+_droidvnc_helper() {
+  local \
+    _command="${1}" \
+    _args=() \
+    _app
+  _app="net.christianbeier.droidvnc_ng"
+  if [[ "${_command}" == "get" ]]; then
+    _args=(
+      "$( \
+        _get \
+          "target" \
+          "key")"
+      )
+  elif [[ "${_command}" == "set" ]]; then
+    _args=(
+      "$( \
+        _get \
+          "target" \
+          "key")"
+      "$( \
+        _get \
+          "target" \
+          "value")"
+    )
+  fi
+  "_${_command}_key_value" \
+    "${_args[@]}"
+}
+
+_set_host_address() {
+  local \
+    _key="${1}" \
+    _value="${2}"
+  _msg_info \
+    "Setting value ${_value} for key ${_key}"
+  # _make_conf \
+  #   "$(_get_conf_path)" \
+  #   "${_host}" \
+  #   "${_device}" \
+  #   "${_address}" \
+  #   "false"
+}
+
+_get_attribute() {
+  echo \
+    "${_line}" | \
+    grep \
+      '"'"${_key}"'"' | \
+      awk \
+        '{print $3}' | \
+        awk \
+          -F \
+            "=" \
+          '{print $2}' | \
+          awk \
+            -F '"' \
+            '{print $2}'
+}
+
+_get_value() {
+  echo \
+    "${_line}" | \
+    grep \
+      "${_key}" | \
+      awk \
+        -F \
+          ">" \
+        '{print $2}' | \
+        awk \
+          -F \
+            "<" \
+          '{print $1}'
+}
+
+# Get DroidVNC settings key
+# $1: target settings key
+_get_key_value() {
+  local \
+    _key="${1}" \
+    _value \
+    _msg=() \
+    _prefs \
+    _line
+  _prefs="/data/data/${_app}/shared_prefs/${_app}_preferences.xml"
+  _line="$( \
+    su \
+      -c \
+      "cat ${_prefs}")"
+  _msg_info \
+    "Full configuration file: ${_line}"
+  _value="$( \
+    _get_attribute)"
+  if [[ "${_value}" == "" ]]; then
+    _value="$(_get_value)"
+  fi
+  echo \
+    "${_value}"
+}
+
+_set_overrides() {
+  if [[ -v override_quiet ]]; then
+    quiet="${override_quiet}"
+  elif [[ -z "${quiet}" ]]; then
+    quiet="y"
+  fi
+  if [[ -v override_color ]]; then
+    color="${override_color}"
+  elif [[ -z "${color}" ]]; then
+    color="n"
+  fi
+}
+
+# Show help usage, with an exit status.
+# $1: exit status number.
+_usage() {
+  local \
+    _usage_text
+  IFS='' \
+    read \
+      -r \
+      -d '' \
+      _usage_text << \
+        ENDUSAGETEXT || true
+Get or set DroidVNC settings
+usage:
+  $(_get "app" "name")
+    [options]
+    <command>
+    <key>
+    (<value>)
+  commands:
+     get                  Get configuration value
+     set                  Set configuration value
+  options:
+     -h                   This message.
+     -c                   Enable color output
+     -v                   Enable verbose output
+ENDUSAGETEXT
+  _printf \
+    '%s\n' \
+    "${_usage_text}"
+  exit \
+    "${1}"
+}
+
+_display_flags() {
+  local \
+    _flags=(
+      "${1}"
+    ) \
+    _flag
+  for _flag \
+    in "${_flags[@]}"; do
+  _msg_info \
+    "                             ${_flag}"
+  done
+}
+
+# Shows configuration options.
+_show_config() {
+  local \
+    _get_date
+  TZ=UTC \
+    printf \
+      -v _get_date \
+      '%(%FT%R%z)T' \
+      "${SOURCE_DATE_EPOCH}"
+  _msg_info "${app_name} configuration"
+  _msg_info "           Operation date:   $(_get "_get" "date")"
+  _msg_info "           Target command:   $(_get "target" "command")"
+  _msg_info "               Target key:   $(_get "target" "key")"
+  _msg_info "             Target value:   $(_get "target" "value")"
+}
+
+_globals
+_global_variables
+_requirements
+_config_user_init \
+  "$(_get \
+       "app" \
+       "name")"
+# shellcheck disable=SC2034
+while \
+  getopts \
+    'cvh?' \
+    arg; do
+  case \
+    "${arg}" in
+    c) override_color="y" ;;
+    v) override_quiet="n" ;;
+    h|?) _set_overrides && \
+         _usage \
+           0 ;;
+    *)
+    _msg_error \
+      "Invalid argument '${arg}'" \
+      0
+    _usage \
+      1
+    ;;
+  esac
+done
+shift \
+  $(( \
+    OPTIND - 1 \
+  ))
+if (( $# < 1 )); then
+  _msg_error \
+    "no command given" \
+    0
+  _set_overrides
+  _usage \
+    1
+elif (( $# < 2 )); then
+  _msg_error \
+    "no key given" \
+    0
+  _set_overrides
+  _usage \
+    1
+fi
+_set \
+  "target" \
+  "command" \
+  "${1}"
+_set \
+  "target" \
+  "key" \
+  "${2}"
+(( $# == 3 )) && \
+_set \
+  "target" \
+  "value" \
+  "${3}"
+_set_overrides
+_config_user_init \
+  "$( \
+    _get \
+      "app" \
+      "name")"
+_show_config
+app_opts=(
+  "$( \
+    _get \
+      "target" \
+      "command")"
+)
+_droidvnc_helper \
+  "${app_opts[@]}"
+
+# vim:set sw=2 sts=-1 et:
