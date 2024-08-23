@@ -68,8 +68,8 @@ _multivnc_helper() {
     _args+=(
       "$( \
         _get \
-          "profile" \
-          "key")"
+          "target" \
+          "profile")"
       "$( \
         _get \
           "target" \
@@ -141,7 +141,6 @@ _restore_db() {
 }
 
 _insert_key_value() {
-   
   echo \
     hijess
 }
@@ -159,6 +158,7 @@ _dump_db(){
     "${_cmd[*]}"
 }
 
+# Set key for a profile
 _set_profile_key_value() {
   local \
     _profile="${1}" \
@@ -178,6 +178,18 @@ _set_profile_key_value() {
     _dump_db | \
       grep \
         "'${_profile}'")"
+  if [[ "${_account_line}" != "" ]]; then
+    _pattern="$( \
+      _get_profile_key_value \
+        "${_profile}" \
+        "${_key}")"
+    if [[ "${_pattern}" != "" ]]; then
+      echo \
+        "${_account_line}" | \
+        sed \
+          "s/${_pattern}/${_value}/"
+    fi
+  fi
   echo \
     "${_account_line}"
   # _cmd=(
@@ -220,60 +232,38 @@ _flush_table() {
   #   "${_cmd[*]}"
 }
 
-_get_attribute() {
-  echo \
-    "${_line}" | \
-    grep \
-      '"'"${_key}"'"' | \
-      awk \
-        '{print $3}' | \
-        awk \
-          -F \
-            "=" \
-          '{print $2}' | \
-          awk \
-            -F '"' \
-            '{print $2}'
-}
-
-_get_value() {
-  echo \
-    "${_line}" | \
-    grep \
-      "${_key}" | \
+_account_key() {
+  local \
+    _account="${1}" \
+    _position="${2}" 
+    echo \
+      "${_account_line}" | \
       awk \
         -F \
-          ">" \
-        '{print $2}' | \
-        awk \
-          -F \
-            "<" \
-          '{print $1}'
+          "," \
+        '{print $'"${_position}"'}'
 }
 
 # Get MultiVNC settings key
 # $1: target settings key
-_get_key_value() {
+_get_profile_key_value() {
   local \
-    _key="${1}" \
-    _value \
+    _profile="${1}" \
+    _key="${2}" \
     _msg=() \
-    _prefs \
-    _line
-  _prefs="/data/data/${_app}/shared_prefs/${_app}_preferences.xml"
-  _line="$( \
-    su \
-      -c \
-      "cat ${_prefs}")"
-  _msg_info \
-    "Full configuration file: ${_line}"
-  _value="$( \
-    _get_attribute)"
-  if [[ "${_value}" == "" ]]; then
-    _value="$(_get_value)"
+    _account
+  _account="$( \
+    _dump_db | \
+      grep \
+        "'${_profile}'")"
+  if [[ "${_key}" == "port" ]]; then
+    _position=4
+  elif [[ "${_key}" == "password" ]]; then
+    _position=5
   fi
-  echo \
-    "${_value}"
+  _account_key \
+    "${_account}" \
+    "${_position}"
 }
 
 _set_overrides() {
