@@ -171,7 +171,9 @@ _profile_add() {
     _password="${4}" \
     _db_cmd=() \
     _entry=() \
-    _opts=()
+    _opts=() \
+    _table
+  _table="CONNECTION_BEAN"
   _opts=(
     "tight"
     "zrle"
@@ -223,7 +225,7 @@ _profile_add() {
      "VALUES($( \
        IFS=","; \
        echo \
-         "${_account_data[*]}"));"
+         "${_entry[*]}"));"
   )
   _flush_table \
     "${_db}" \
@@ -394,6 +396,18 @@ _get_profile_key_value() {
 }
 
 _set_overrides() {
+  _set_override \
+    "target" \
+    "address" \
+    "localhost"
+  _set_override \
+    "target" \
+    "port" \
+    "59001"
+  _set_override \
+    "target" \
+    "password" \
+    ""
   if [[ -v override_quiet ]]; then
     quiet="${override_quiet}"
   elif [[ -z "${quiet}" ]]; then
@@ -476,7 +490,7 @@ _show_config() {
   _msg_info "           Operation date:   $(_get "_get" "date")"
   _msg_info "           Target command:   $(_get "target" "command")"
   _msg_info "           Target profile:   $(_get "target" "profile")"
-_msg_info "             Target address:   $(_get "target" "address")"
+  _msg_info "           Target address:   $(_get "target" "address")"
   _msg_info "              Target port:   $(_get "target" "port")"
   _msg_info "          Target password:   $(_get "target" "port")"
   _msg_info "               Target key:   $(_get "target" "key")"
