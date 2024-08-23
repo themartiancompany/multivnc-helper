@@ -42,21 +42,37 @@ _requirements() {
       "tsu"
 }
 
+_get_conf_dir_path() {
+  local \
+    _dir
+  _dir="${HOME}/.config/$( \
+    _get \
+      "app" \
+      "name")"
+  echo \
+    "${_dir}"
+}
+
 _multivnc_helper() {
   local \
     _command="${1}" \
+    _cmd \
     _args=() \
-    _app
+    _app \
+    _db
   _app="com.coboltforge.dontmind.multivnc"
+  _db="/data/data/${_app}/databases/VncDatabase"
   if [[ "${_command}" == "get" ]]; then
-    _args=(
+    _cmd="_${_command}_key_value"
+    _args+=(
       "$( \
         _get \
           "target" \
           "key")"
       )
   elif [[ "${_command}" == "set" ]]; then
-    _args=(
+    _cmd="_${_command}_key_value"
+    _args+=(
       "$( \
         _get \
           "target" \
@@ -66,27 +82,109 @@ _multivnc_helper() {
           "target" \
           "value")"
     )
+  elif [[ "${_command}" == "backup" ]]; then
+    _cmd="_${_command}_db"
+  elif [[ "${_command}" == "restore" ]]; then
+    _cmd="_${_command}_db"
   fi
-  "_${_command}_key_value" \
+  "${_cmd}" \
     "${_args[@]}"
+}
+
+_backup_db() {
+  local \
+    _cmd=() \
+    _dest
+  _dest="$( \
+    _get_conf_dir_path)"
+  _msg_info \
+    "backing up to '${_dest}'"
+  _cmd=(
+    cp
+      -a
+      "${_db}"
+      "${_dest}"
+  )
+  su \
+    -c \
+    "${_cmd[*]}"
+}
+
+_restore_db() {
+  local \
+    _cmd=()
+    _dest
+  _dest="$( \
+    _get_conf_dir_path)"
+  _msg_info \
+    "restoring from '${_dest}'"
+  _cmd=(
+    cp
+      -a
+      "$(_get_conf_dir_path)"
+      "${_db}"
+  )
+  su \
+    -c \
+    "${_cmd[*]}"
+}
+
+_insert_key_value() {
+  echo \
+    hijess
 }
 
 _set_key_value() {
   local \
     _key="${1}" \
-    _value="${2}"
+    _value="${2}" \
+    _table="CONNECTION_BEAN" \
+    _cmd=() \
+    _insert
   _msg_info \
     "Setting value ${_value} for key ${_key}"
-  # _make_conf \
-  #   "$(_get_conf_path)" \
-  #   "${_host}" \
-  #   "${_device}" \
-  #   "${_address}" \
-  #   "false"
+  _insert=""
+  _flush_table \
+    "${_db}" \
+    "${_table}"
+  _cmd=(
+    sqlite3 \
+      "${_db}" \
+      ".dump"
+  )
+  su \
+    -c \
+    "${_cmd[*]}"
 }
 
 _flush_table() {
-
+  local \
+    _db="${1}" \
+    _table="${2}" \
+    _delete \
+    _delete_1 \
+    _delete_2
+  _msg_info \
+    "flushing table ${_table} in db '${_db}'"
+  _delete_1="Delete from ${_table};"
+  _delete_2="DELETE FROM SQLITE_SEQUENCE WHERE name='${_table}';"
+  _delete="DELETE FROM ${_table};"
+  _cmd=(
+    sqlite3
+      "${_db}"
+      "'${_delete}'"
+  )
+  su \
+    -c \
+    "${_cmd[*]}"
+  # _cmd=(
+  #   sqlite3 \
+  #     "${_db}" \
+  #     "${_delete_1}"
+  # )
+  # su \
+  #   -c \
+  #   "${_cmd[*]}"
 }
 
 _get_attribute() {
@@ -120,7 +218,7 @@ _get_value() {
           '{print $1}'
 }
 
-# Get DroidVNC settings key
+# Get MultiVNC settings key
 # $1: target settings key
 _get_key_value() {
   local \
@@ -169,7 +267,7 @@ _usage() {
       -d '' \
       _usage_text << \
         ENDUSAGETEXT || true
-Get or set DroidVNC settings
+Get or set MultiVNC settings
 usage:
   $(_get "app" "name")
     [options]
@@ -179,6 +277,8 @@ usage:
   commands:
      get                  Get configuration value
      set                  Set configuration value
+     backup               Backup database
+     restore              Restore database
   options:
      -h                   This message.
      -c                   Enable color output
@@ -259,27 +359,23 @@ if (( $# < 1 )); then
   _set_overrides
   _usage \
     1
-elif (( $# < 2 )); then
-  _msg_error \
-    "no key given" \
-    0
-  _set_overrides
-  _usage \
-    1
 fi
 _set \
   "target" \
   "command" \
   "${1}"
-_set \
-  "target" \
-  "key" \
-  "${2}"
-(( $# == 3 )) && \
-_set \
-  "target" \
-  "value" \
-  "${3}"
+if (( 1 < $# )); then
+  _set \
+    "target" \
+    "key" \
+    "${2}"
+fi
+if (( 2 < $# )); then
+  _set \
+    "target" \
+    "value" \
+    "${3}"
+fi
 _set_overrides
 _config_user_init \
   "$( \
