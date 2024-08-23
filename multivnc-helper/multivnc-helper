@@ -426,11 +426,19 @@ usage:
     <key>
     (<value>)
   commands:
+     add                  Set new profile
+       <profile>
      get                  Get configuration value
+       <key>
      set                  Set configuration value
-     backup               Backup database
-     restore              Restore database
+       <key>
+       <value>
+     backup               Backup original database
+     restore              Restore original database
   options:
+     -a <address>         Address for the new profile.
+     -p <port>            Port for the new profile.
+     -k <password>        Password for the new profile.
      -h                   This message.
      -c                   Enable color output
      -v                   Enable verbose output
@@ -468,6 +476,9 @@ _show_config() {
   _msg_info "           Operation date:   $(_get "_get" "date")"
   _msg_info "           Target command:   $(_get "target" "command")"
   _msg_info "           Target profile:   $(_get "target" "profile")"
+_msg_info "             Target address:   $(_get "target" "address")"
+  _msg_info "              Target port:   $(_get "target" "port")"
+  _msg_info "          Target password:   $(_get "target" "port")"
   _msg_info "               Target key:   $(_get "target" "key")"
   _msg_info "             Target value:   $(_get "target" "value")"
 }
@@ -482,10 +493,13 @@ _config_user_init \
 # shellcheck disable=SC2034
 while \
   getopts \
-    'cvh?' \
+    'a:p:k:cvh?' \
     arg; do
   case \
     "${arg}" in
+    a) override_target_address="${OPTARG}" ;;
+    p) override_target_port="${OPTARG}" ;;
+    k) override_target_password="${OPTARG}" ;;
     c) override_color="y" ;;
     v) override_quiet="n" ;;
     h|?) _set_overrides && \
