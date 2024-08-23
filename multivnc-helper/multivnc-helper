@@ -91,18 +91,20 @@ _multivnc_helper() {
           "target" \
           "value")"
     )
+  elif [[ "${_command}" == "add" ]]; then
+    _cmd="_profile_${_command}"
   elif [[ "${_command}" == "backup" ]]; then
-    _cmd="_${_command}_db"
+    _cmd="_db_${_command}"
   elif [[ "${_command}" == "restore" ]]; then
-    _cmd="_${_command}_db"
+    _cmd="_db_${_command}"
   elif [[ "${_command}" == "dump" ]]; then
-    _cmd="_${_command}_db"
+    _cmd="_db_${_command}"
   fi
   "${_cmd}" \
     "${_args[@]}"
 }
 
-_backup_db() {
+_db_backup() {
   local \
     _cmd=() \
     _dest
@@ -121,7 +123,7 @@ _backup_db() {
     "${_cmd[*]}"
 }
 
-_restore_db() {
+_db_restore() {
   local \
     _cmd=() \
     _src
@@ -140,17 +142,97 @@ _restore_db() {
     "${_cmd[*]}"
 }
 
-_insert_key_value() {
+_profile_add() {
+  local \
+    _profile="${1}" \
+    _address="${2}" \
+    _port="${3}" \
+    _password="${4}" \
+    _db_cmd=() \
+    _entry=() \
+    _opts=()
+  _opts=(
+    "tight"
+    "zrle"
+    "ultra"
+    "copyrect"
+    "hextile"
+    "zlib"
+    "corre"
+    "rre"
+    "trle"
+    "zywrle"
+    "raw"
+  )
+  _entry=(
+    100
+    "'${_profile}'"
+    "'${_address}'"
+    "${_port}"
+    "'${_password}'"
+    "'${_opts[*]}'"
+    "'L6'" # Compression
+    "'L5'" # Quality
+    "'C24bit'" # Colors
+    0
+    "''"
+    NULL
+    NULL
+    1
+    1
+    1
+    0
+    1
+    0
+    0
+    "''"
+    NULL
+    0
+    NULL
+    NULL
+    NULL
+    NULL
+    NULL
+    NULL
+  )
+  _db_cmd=(
+    "INSERT"
+     "INTO"
+     "CONNECTION_BEAN"
+     "VALUES($( \
+       IFS=","; \
+       echo \
+         "${_account_data[*]}"));"
+  )
+  _flush_table \
+    "${_db}" \
+    "${_table}"
+  _cmd=(
+    sqlite3
+      "${_db}"
+      "\"${_db_cmd[*]}\""
+  )
+  _msg_info \
+    "Running ${_cmd[*]}"
+  su \
+    -c \
+    "${_cmd[*]}" 1&>/dev/null
+  _account="$( \
+    _db_dump | \
+      grep \
+        "'${_profile}'")"
+  _msg_info \
+    "Account: ${_account}"
   echo \
     hijess
 }
 
-_dump_db(){
+_db_dump(){
   local \
     _cmd=()
   _cmd=(
-    sqlite3 \
-      "${_db}" \
+    sqlite3
+      "${_db}"
       ".dump"
   )
   su \
@@ -165,41 +247,65 @@ _set_profile_key_value() {
     _key="${2}" \
     _value="${3}" \
     _table="CONNECTION_BEAN" \
+    _db_cmd \
     _cmd=() \
-    _insert
+    _account \
+    _repl \
+    _id
   _msg_info \
     "Setting value ${_value} for key ${_key} of profile '${_profile}'"
-  _insert=""
-  # _flush_table \
-  #   "${_db}" \
-  #   "${_table}"
-  #
-  _account_line="$( \
-    _dump_db | \
+  _repl="${_value}"
+  _account="$( \
+    _db_dump | \
       grep \
         "'${_profile}'")"
-  if [[ "${_account_line}" != "" ]]; then
+  if [[ "${_account}" != "" ]]; then
     _pattern="$( \
       _get_profile_key_value \
         "${_profile}" \
         "${_key}")"
+    _id="$( \
+      _get_profile_key_value \
+        "${_profile}" \
+        "id")"
+    _msg_info \
+      "account id ${_id}"
+    if [[ "${_key}" == "password" ]]; then
+      _repl="'${_value}'"
+    fi
     if [[ "${_pattern}" != "" ]]; then
-      echo \
-        "${_account_line}" | \
-        sed \
-          "s/${_pattern}/${_value}/"
+      # _new_id="$((_id + 100))"
+      _new_id="$((1))"
+      _db_cmd="$( \
+        echo \
+          "${_account}" | \
+          sed \
+            "s/${_pattern}/${_repl}/" | \
+            sed \
+              "s/${_id},/${_new_id},/")"
     fi
   fi
-  echo \
-    "${_account_line}"
-  # _cmd=(
-  #   sqlite3 \
-  #     "${_db}" \
-  #     ".dump"
-  # )
-  # su \
-  #   -c \
-  #   "${_cmd[*]}"
+  if [[ "${_db_cmd}" != "" ]]; then
+    _flush_table \
+      "${_db}" \
+      "${_table}"
+    _cmd=(
+      sqlite3
+        "${_db}"
+        "\"${_db_cmd}\""
+    )
+    _msg_info \
+      "Running ${_cmd[*]}"
+    su \
+      -c \
+      "${_cmd[*]}" 1&>/dev/null
+  fi
+  _account="$( \
+    _db_dump | \
+      grep \
+        "'${_profile}'")"
+  _msg_info \
+    "Account: ${_account}"
 }
 
 _flush_table() {
@@ -222,22 +328,18 @@ _flush_table() {
   su \
     -c \
     "${_cmd[*]}"
-  # _cmd=(
-  #   sqlite3 \
-  #     "${_db}" \
-  #     "${_delete_1}"
-  # )
-  # su \
-  #   -c \
-  #   "${_cmd[*]}"
 }
 
 _account_key() {
   local \
     _account="${1}" \
     _position="${2}" 
-    echo \
-      "${_account_line}" | \
+  echo \
+    "${_account}" | \
+    awk \
+      -F \
+        "(" \
+      '{print $2}' | \
       awk \
         -F \
           "," \
@@ -253,10 +355,14 @@ _get_profile_key_value() {
     _msg=() \
     _account
   _account="$( \
-    _dump_db | \
+    _db_dump | \
       grep \
         "'${_profile}'")"
-  if [[ "${_key}" == "port" ]]; then
+  if [[ "${_key}" == "id" ]]; then
+    _position=1
+  elif [[ "${_key}" == "host" ]]; then
+    _position=3
+  elif [[ "${_key}" == "port" ]]; then
     _position=4
   elif [[ "${_key}" == "password" ]]; then
     _position=5
