@@ -16,6 +16,9 @@ source \
 _global_variables() {
   target_command=""
   target_profile=""
+  target_address=""
+  target_port=""
+  target_password=""
   target_key=""
   target_value=""
   color=""
@@ -93,6 +96,24 @@ _multivnc_helper() {
     )
   elif [[ "${_command}" == "add" ]]; then
     _cmd="_profile_${_command}"
+    _args+=(
+      "$( \
+        _get \
+          "target" \
+          "profile")"
+      "$( \
+        _get \
+          "target" \
+          "address")"
+      "$( \
+        _get \
+          "target" \
+          "port")"
+      "$( \
+        _get \
+          "target" \
+          "password")"
+    )
   elif [[ "${_command}" == "backup" ]]; then
     _cmd="_db_${_command}"
   elif [[ "${_command}" == "restore" ]]; then
