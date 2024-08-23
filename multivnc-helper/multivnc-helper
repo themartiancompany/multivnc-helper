@@ -492,7 +492,7 @@ _show_config() {
   _msg_info "           Target profile:   $(_get "target" "profile")"
   _msg_info "           Target address:   $(_get "target" "address")"
   _msg_info "              Target port:   $(_get "target" "port")"
-  _msg_info "          Target password:   $(_get "target" "port")"
+  _msg_info "          Target password:   $(_get "target" "password")"
   _msg_info "               Target key:   $(_get "target" "key")"
   _msg_info "             Target value:   $(_get "target" "value")"
 }
