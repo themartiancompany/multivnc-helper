@@ -30,7 +30,7 @@ _requirements() {
     _app
     _check_cmd \
       'app-installed' \
-      'android-utils'
+      'android-app-utils'
     _app="$( \
       app-installed \
         'com.coboltforge.dontmind.multivnc')"
@@ -239,15 +239,15 @@ _profile_add() {
     "Running ${_cmd[*]}"
   su \
     -c \
-    "${_cmd[*]}" 1&>/dev/null
+    "${_cmd[*]}" 1&>/dev/null || \
+    true
   _account="$( \
     _db_dump | \
       grep \
-        "'${_profile}'")"
+        "'${_profile}'")" || \
+  true
   _msg_info \
     "Account: ${_account}"
-  echo \
-    hijess
 }
 
 _db_dump(){
