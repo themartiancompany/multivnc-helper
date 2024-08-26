@@ -218,6 +218,9 @@ _profile_add() {
     NULL
     NULL
   )
+  _flush_table \
+    "${_db}" \
+    "${_table}"
   _db_cmd=(
     "INSERT"
      "INTO"
@@ -227,19 +230,16 @@ _profile_add() {
        echo \
          "${_entry[*]}"));"
   )
-  _flush_table \
-    "${_db}" \
-    "${_table}"
   _cmd=(
     sqlite3
       "${_db}"
       "\"${_db_cmd[*]}\""
   )
   _msg_info \
-    "Running ${_cmd[*]}"
+    "running ${_cmd[*]}"
   su \
     -c \
-    "${_cmd[*]}" 1&>/dev/null || \
+    "${_cmd[*]}" || \
     true
   _account="$( \
     _db_dump | \
