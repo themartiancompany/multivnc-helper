@@ -312,7 +312,7 @@ _set_profile_key_value() {
     _msg_error \
       "No account found in db"
   fi
-  if [[ "${_db_cmd}" != ""]]; then
+  if [[ "${_db_cmd}" != "" ]]; then
     _flush_table \
       "${_db}" \
       "${_table}"
