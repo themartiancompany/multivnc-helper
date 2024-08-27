@@ -63,11 +63,14 @@ _multivnc_helper() {
     _cmd \
     _args=() \
     _app \
-    _db
+    _db \
+    _type
   _app="com.coboltforge.dontmind.multivnc"
   _db="/data/data/${_app}/databases/VncDatabase"
   if [[ "${_command}" == "get" ]]; then
-    _cmd="_${_command}_profile_key_value"
+    _obj="profile"
+    _type="key_value"
+    _cmd="_${_obj}_${_type}_${_command}"
     _args+=(
       "$( \
         _get \
@@ -79,7 +82,9 @@ _multivnc_helper() {
           "key")"
       )
   elif [[ "${_command}" == "set" ]]; then
-    _cmd="_${_command}_profile_key_value"
+    _obj="profile"
+    _type="key_value"
+    _cmd="_${_obj}_${_type}_${_command}"
     _args+=(
       "$( \
         _get \
@@ -95,7 +100,8 @@ _multivnc_helper() {
           "value")"
     )
   elif [[ "${_command}" == "add" ]]; then
-    _cmd="_profile_${_command}"
+    _obj="profile"
+    _cmd="_${_obj}_${_command}"
     _args+=(
       "$( \
         _get \
@@ -114,12 +120,14 @@ _multivnc_helper() {
           "target" \
           "password")"
     )
-  elif [[ "${_command}" == "backup" ]]; then
-    _cmd="_db_${_command}"
-  elif [[ "${_command}" == "restore" ]]; then
-    _cmd="_db_${_command}"
+  elif \
+    [[ "${_command}" == "backup" ]] || \
+    [[ "${_command}" == "restore" ]]; then
+    _obj="db"
+    _cmd="_${_obj}_${_command}"
   elif [[ "${_command}" == "dump" ]]; then
-    _cmd="_db_${_command}"
+    _obj="db"
+    _cmd="_${_obj}_${_command}"
   fi
   "${_cmd}" \
     "${_args[@]}"
@@ -191,8 +199,12 @@ _profile_add() {
     100
     "'${_profile}'"
     "'${_address}'"
-    "${_port}"
+    "'${_port}'"
     "'${_password}'"
+    # "\"$(echo \
+    #       "${_password}" | \
+    #       sed \
+    #         "s/'/\\\'/g")\""
     "'${_opts[*]}'"
     "'L6'" # Compression
     "'L5'" # Quality
@@ -264,7 +276,7 @@ _db_dump(){
 }
 
 # Set key for a profile
-_set_profile_key_value() {
+_profile_key_value_set() {
   local \
     _profile="${1}" \
     _key="${2}" \
@@ -284,12 +296,14 @@ _set_profile_key_value() {
         "'${_profile}'")" || \
     true
   if [[ "${_account}" != "" ]]; then
+    _msg_info \
+      "found account"
     _pattern="$( \
-      _get_profile_key_value \
+      _profile_key_value_get \
         "${_profile}" \
         "${_key}")"
     _id="$( \
-      _get_profile_key_value \
+      _profile_key_value_get \
         "${_profile}" \
         "id")"
     _msg_info \
@@ -325,12 +339,13 @@ _set_profile_key_value() {
       "Running ${_cmd[*]}"
     su \
       -c \
-      "${_cmd[*]}" 1&>/dev/null
+      "${_cmd[*]}"
   fi
   _account="$( \
     _db_dump | \
       grep \
-        "'${_profile}'")"
+        "'${_profile}'")" || \
+    true
   _msg_info \
     "Account: ${_account}"
 }
@@ -375,7 +390,7 @@ _account_key() {
 
 # Get MultiVNC settings key
 # $1: target settings key
-_get_profile_key_value() {
+_profile_key_value_get() {
   local \
     _profile="${1}" \
     _key="${2}" \
