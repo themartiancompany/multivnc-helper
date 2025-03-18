@@ -22,7 +22,7 @@
 
 # MultiVNC Helper
 
-An helper for
+A program helper for
 [MultiVNC](
   https://github.com/bk138/multivnc)
 for Android to get and set options
