@@ -25,7 +25,8 @@
 An helper for
 [MultiVNC](
   https://github.com/bk138/multivnc)
- for Android.
+for Android to get and set options
+on the fly.
 
 ## License
 

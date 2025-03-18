@@ -451,13 +451,16 @@ _usage() {
       _usage_text << \
         ENDUSAGETEXT || true
 Get or set MultiVNC settings
+
 usage:
+
   $(_get "app" "name")
     [options]
     <command>
     <profile>
     <key>
     (<value>)
+
   commands:
      add                  Set new profile
        <profile>
@@ -468,6 +471,7 @@ usage:
        <value>
      backup               Backup original database
      restore              Restore original database
+
   options:
      -a <address>         Address for the new profile.
      -p <port>            Port for the new profile.
