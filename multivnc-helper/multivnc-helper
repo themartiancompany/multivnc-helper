@@ -49,10 +49,7 @@ _requirements() {
 _get_conf_dir_path() {
   local \
     _dir
-  _dir="${HOME}/.config/$( \
-    _get \
-      "app" \
-      "name")"
+  _dir="${HOME}/.config/${app_name}"
   echo \
     "${_dir}"
 }
@@ -72,53 +69,26 @@ _multivnc_helper() {
     _type="key_value"
     _cmd="_${_obj}_${_type}_${_command}"
     _args+=(
-      "$( \
-        _get \
-          "target" \
-          "profile")"
-      "$( \
-        _get \
-          "target" \
-          "key")"
+      "${target_profile}"
+      "${target_key}"
       )
   elif [[ "${_command}" == "set" ]]; then
     _obj="profile"
     _type="key_value"
     _cmd="_${_obj}_${_type}_${_command}"
     _args+=(
-      "$( \
-        _get \
-          "target" \
-          "profile")"
-      "$( \
-        _get \
-          "target" \
-          "key")"
-      "$( \
-        _get \
-          "target" \
-          "value")"
+      "${target_profile}"
+      "${target_key}"
+      "${target_value}"
     )
   elif [[ "${_command}" == "add" ]]; then
     _obj="profile"
     _cmd="_${_obj}_${_command}"
     _args+=(
-      "$( \
-        _get \
-          "target" \
-          "profile")"
-      "$( \
-        _get \
-          "target" \
-          "address")"
-      "$( \
-        _get \
-          "target" \
-          "port")"
-      "$( \
-        _get \
-          "target" \
-          "password")"
+      "${target_profile}"
+      "${target_address}"
+      "${target_port}"
+      "${target_password}"
     )
   elif \
     [[ "${_command}" == "backup" ]] || \
@@ -136,11 +106,15 @@ _multivnc_helper() {
 _db_backup() {
   local \
     _cmd=() \
-    _dest
+    _dest \
+    _msg=()
   _dest="$( \
     _get_conf_dir_path)"
+  _msg=(
+    "Backing up to '${_dest}'."
+  )
   _msg_info \
-    "backing up to '${_dest}'"
+    "${_msg[*]}"
   _cmd=(
     cp
       -a
@@ -159,7 +133,7 @@ _db_restore() {
   _src="$( \
     _get_conf_dir_path)/VncDatabase"
   _msg_info \
-    "restoring from '${_src}'"
+    "Restoring from '${_src}'."
   _cmd=(
     cp
       -a
